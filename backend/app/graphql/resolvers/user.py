@@ -1,5 +1,6 @@
 from app.models.user import User
 from app.db.session import SessionLocal
+from sqlalchemy import select
 
 async def get_user_by_id(user_id: int):
     async with SessionLocal() as session:
