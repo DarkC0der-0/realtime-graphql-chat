@@ -1,0 +1,16 @@
+fastapi
+graphene
+databases
+sqlalchemy
+alembic
+asyncpg
+redis
+aioredis
+pyjwt
+python-dotenv
+pytest
+pytest-asyncio
+httpx
+pytest-mock
+loguru
+prometheus-client

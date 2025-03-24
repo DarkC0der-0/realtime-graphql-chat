@@ -1,0 +1,45 @@
+type Message {
+  id: ID!
+  content: String!
+  timestamp: String!
+  sender: User!
+  room: Room!
+}
+
+type MessageEdge {
+  cursor: String!
+  node: Message!
+}
+
+type MessageConnection {
+  edges: [MessageEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+type Query {
+  messagesByRoom(roomId: Int!, first: Int, after: String): MessageConnection!
+  allUsers: [User!]!
+  allRooms: [Room!]!
+}
+
+type Mutation {
+  createUser(username: String!): CreateUserPayload!
+  createMessage(content: String!, userId: Int!, roomId: Int!): CreateMessagePayload!
+}
+
+type Subscription {
+  messageCreated(roomId: Int!): Message!
+}
+
+type CreateUserPayload {
+  user: User!
+}
+
+type CreateMessagePayload {
+  message: Message!
+}
