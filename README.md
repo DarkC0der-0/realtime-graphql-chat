@@ -209,4 +209,135 @@ This is a full-stack realtime graphql chat application built using React for the
    - `AWS_REGION`
 
 2. **Create a GitHub Actions workflow**:
-   Place 
+   Place the following YAML file in `.github/workflows/ci-cd.yml`:
+   ```yaml
+   name: CI/CD Pipeline
+
+   on:
+     push:
+       branches:
+         - main
+
+   jobs:
+     test:
+       name: Run Tests
+       runs-on: ubuntu-latest
+
+       services:
+         postgres:
+           image: postgres:13
+           env:
+             POSTGRES_USER: postgres
+             POSTGRES_PASSWORD: password
+             POSTGRES_DB: app
+           ports:
+             - 5432/tcp
+           options: >-
+             --health-cmd="pg_isready -U postgres"
+             --health-interval=10s
+             --health-timeout=5s
+             --health-retries=5
+
+         redis:
+           image: redis:latest
+           ports:
+             - 6379/tcp
+           options: >-
+             --health-cmd="redis-cli ping"
+             --health-interval=10s
+             --health-timeout=5s
+             --health-retries=5
+
+       steps:
+         - name: Checkout code
+           uses: actions/checkout@v2
+
+         - name: Set up Python
+           uses: actions/setup-python@v2
+           with:
+             python-version: '3.9'
+
+         - name: Install dependencies for backend
+           run: |
+             cd backend
+             python -m pip install --upgrade pip
+             pip install -r requirements.txt
+
+         - name: Run backend tests
+           run: |
+             cd backend
+             pytest
+
+         - name: Set up Node.js
+           uses: actions/setup-node@v2
+           with:
+             node-version: '14'
+
+         - name: Install dependencies for frontend
+           run: |
+             cd frontend
+             npm install
+
+         - name: Run frontend tests
+           run: |
+             cd frontend
+             npm test
+
+     build:
+       name: Build Docker Images
+       runs-on: ubuntu-latest
+
+       steps:
+         - name: Checkout code
+           uses: actions/checkout@v2
+
+         - name: Set up Docker Buildx
+           uses: docker/setup-buildx-action@v1
+
+         - name: Log in to Docker Hub
+           uses: docker/login-action@v2
+           with:
+             username: ${{ secrets.DOCKER_USERNAME }}
+             password: ${{ secrets.DOCKER_PASSWORD }}
+
+         - name: Build and push backend image
+           run: |
+             docker buildx build --push --tag ${{ secrets.DOCKER_USERNAME }}/backend:latest ./backend
+
+         - name: Build and push frontend image
+           run: |
+             docker buildx build --push --tag ${{ secrets.DOCKER_USERNAME }}/frontend:latest ./frontend
+
+     deploy:
+       name: Deploy to AWS ECS
+       needs: build
+       runs-on: ubuntu-latest
+
+       steps:
+         - name: Checkout code
+           uses: actions/checkout@v2
+
+         - name: Configure AWS credentials
+           uses: aws-actions/configure-aws-credentials@v1
+           with:
+             aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+             aws-region: ${{ secrets.AWS_REGION }}
+
+         - name: Deploy to ECS
+           run: |
+             ecs-cli configure --cluster my-cluster --default-launch-type EC2 --region ${{ secrets.AWS_REGION }} --config-name my-config
+             ecs-cli configure profile --access-key ${{ secrets.AWS_ACCESS_KEY_ID }} --secret-key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile-name my-profile
+             ecs-cli compose --file docker-compose.yml service up
+             ecs-cli compose --file docker-compose.yml service start
+   ```
+
+## Example Use Cases
+
+- **User Authentication**: Users can sign up and log in to the application to start chatting.
+- **Real-Time Messaging**: Users can send and receive messages in real-time within chat rooms.
+- **Message Storage**: Messages are stored in a PostgreSQL database and can be retrieved later.
+
+## Architecture Diagram
+
+![Architecture Diagram](path/to/architecture-diagram.png)
